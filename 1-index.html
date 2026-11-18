@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AirSaathi - a GenAI assistant that helps families navigate winter smog with low-emission routines, indoor air hacks and sustainable swaps tailored to their city and lifestyle." />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com https://air-quality-api.open-meteo.com https://text.pollinations.ai; style-src 'self'; img-src 'self' data:; script-src 'self'; base-uri 'none'; form-action 'self'" />
+  <title>AirSaathi - Urban Air Quality Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232f6f4f'/%3E%3Cpath d='M9 17c4-1 5-6 9-7-1 4-3 8-7 9 3 1 6 0 8-2-1 4-5 7-9 6-3-1-4-4-1-6z' fill='%23eaf5ee'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <h1 class="brand">AirSaathi</h1>
+      <p class="tagline">Your urban air quality assistant - beat the smog, breathe easier.</p>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <section aria-labelledby="form-heading" class="card">
+      <h2 id="form-heading">Tell us about your day</h2>
+      <p class="muted">We check your city's live air quality and build a personal anti-smog plan for you.</p>
+
+      <form id="profile-form" novalidate>
+        <div class="field">
+          <label for="city">Your city or town</label>
+          <input id="city" name="city" type="text" autocomplete="address-level2"
+                 placeholder="e.g. Delhi" required aria-describedby="city-error" />
+          <p class="error" id="city-error" role="alert" hidden></p>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="commute">Main way you commute</label>
+            <select id="commute" name="commute">
+              <option value="car">Car</option>
+              <option value="motorbike">Motorbike / scooter</option>
+              <option value="bus">Bus</option>
+              <option value="metro">Metro / train</option>
+              <option value="cycle" selected>Cycle</option>
+              <option value="walk">Walk</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="commute-km">One-way commute distance (km)</label>
+            <input id="commute-km" name="commuteKm" type="number" min="0" max="120" step="0.5" value="5" inputmode="decimal" />
+          </div>
+        </div>
+
+        <fieldset class="field">
+          <legend>Who is at home with you? <span class="muted-inline">(tick all that apply)</span></legend>
+          <div class="checks">
+            <label><input type="checkbox" name="household" value="young children" /> Young children</label>
+            <label><input type="checkbox" name="household" value="elderly family members" /> Elderly family</label>
+            <label><input type="checkbox" name="household" value="someone with asthma or breathing trouble" /> Asthma / breathing trouble</label>
+            <label><input type="checkbox" name="household" value="pets" /> Pets</label>
+          </div>
+        </fieldset>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="exercise">Outdoor exercise habit</label>
+            <select id="exercise" name="exercise">
+              <option value="daily outdoors">Daily, outdoors</option>
+              <option value="a few times a week outdoors">A few times a week</option>
+              <option value="rarely">Rarely</option>
+              <option value="mostly indoors" selected>Mostly indoors</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="work-setting">Your day is mostly spent</label>
+            <select id="work-setting" name="workSetting">
+              <option value="indoors" selected>Indoors</option>
+              <option value="outdoors">Outdoors</option>
+              <option value="mixed indoor and outdoor">Mixed</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="primary" id="submit-btn">Build my clean-air plan</button>
+      </form>
+    </section>
+
+    <section id="aqi-panel" class="card" aria-labelledby="aqi-heading" hidden>
+      <h2 id="aqi-heading">Live air quality</h2>
+      <div class="aqi-box" id="aqi-box">
+        <p class="aqi-number"><span id="aqi-value">-</span><span class="aqi-unit">US AQI</span></p>
+        <p class="aqi-band" id="aqi-band">-</p>
+        <p class="aqi-advice" id="aqi-advice"></p>
+        <p class="muted small" id="aqi-meta"></p>
+      </div>
+    </section>
+
+    <section id="impact-panel" class="card" aria-labelledby="impact-heading" hidden>
+      <h2 id="impact-heading">Your commute, in CO2</h2>
+      <p id="impact-text"></p>
+    </section>
+
+    <section id="plan-panel" class="card" aria-labelledby="plan-heading" hidden>
+      <h2 id="plan-heading">Your personal clean-air plan</h2>
+      <p class="muted small">Written for you by an AI (Pollinations open model) using your live air data and lifestyle.</p>
+      <div id="plan-status" role="status" aria-live="polite" class="status"></div>
+      <div id="plan-output" class="plan-output" tabindex="0"></div>
+      <details class="prompt-details">
+        <summary>See the exact prompt sent to the AI</summary>
+        <pre id="prompt-view"></pre>
+      </details>
+    </section>
+
+    <section id="error-panel" class="card error-card" aria-labelledby="error-heading" hidden>
+      <h2 id="error-heading">Something needs attention</h2>
+      <p id="error-text" role="alert"></p>
+      <div id="fallback-box" hidden>
+        <h3>General anti-smog safety tips</h3>
+        <ul id="fallback-list"></ul>
+      </div>
+      <button type="button" id="retry-btn" class="secondary">Try again</button>
+    </section>
+
+    <footer class="site-footer">
+      <p>Air data: Open-Meteo Air Quality API (CAMS). AI: Pollinations open models. No accounts, no tracking, no API keys - your answers never leave your browser except to those two services.</p>
+    </footer>
+  </main>
+
+  <script src="lib.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
